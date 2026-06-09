@@ -1,1 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gideon AI</title>
+    <style>
+        body { background-color: #000; color: #0ff; font-family: 'Courier New', Courier, monospace; margin: 0; padding: 20px; }
+        #app-container { max-width: 600px; margin: auto; }
+        #chat-window { height: 400px; overflow-y: auto; border: 1px solid #0ff; padding: 10px; margin-bottom: 10px; }
+        #input-area { display: flex; }
+        input { flex-grow: 1; background: #111; color: #0ff; border: 1px solid #0ff; padding: 10px; }
+        button { background: #0ff; color: #000; border: none; padding: 10px; cursor: pointer; }
+        .message { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <h1>Gideon AI</h1>
+    <div id="chat-window"></div>
+    <div id="input-area">
+        <input type="text" id="userInput" placeholder="Type a message...">
+        <button onclick="handleSend()">Send</button>
+    </div>
+</div>
+
+<script>
+    const GIDEON_PROMPT = "You are Gideon, a highly advanced, professional, and efficient AI assistant. You speak clearly and concisely. You are designed to assist the user with tasks and provide accurate information.";
+    
+    function addHist(sender, text) {
+        const chatWindow = document.getElementById('chat-window');
+        const msg = document.createElement('div');
+        msg.className = 'message';
+        msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+        chatWindow.appendChild(msg);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function speak(text) {
+        addHist('Gideon', text);
+        const utterance = new SpeechSynthesisUtterance(text);
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function setState(text, type) {
+        console.log(text);
+    }
+
+    function openCam() { alert('Camera opened'); }
+    function openGallery() { alert('Gallery opened'); }
+    function openHistory() { alert('History opened'); }
+
+    async function handleSend() {
+        const input = document.getElementById('userInput');
+        const text = input.value;
+        if (!text.trim()) return;
+        input.value = '';
+        await processQuery(text);
+    }
+
+    async function processQuery(text) {
+        if (!text.trim()) return;
+        const lo = text.toLowerCase();
+
+        // Navigation commands
+        if (lo.includes('open camera') || lo.includes('take photo')) { speak("Opening your camera now."); setTimeout(openCam, 1500); return; }
+        if (lo.includes('open gallery') || lo.includes('open photos')) { speak("Opening your photo gallery."); setTimeout(openGallery, 1500); return; }
+        if (lo.includes('open history') || lo.includes('show history')) { speak("Here is your conversation history."); setTimeout(openHistory, 1500); return; }
+        if (lo.includes('what time') || lo.includes('current time')) { speak(`The current time is ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`); return; }
+        if (lo.includes('what date') || lo.includes("today's date") || lo.includes('what day')) { speak(`Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.`); return; }
+
+        // AI response via Groq
+        setState('Thinking...', 'thinking');
+        addHist('You', text);
+        
+        const GROQ_KEY = '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';
+
+        try {
+            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${GROQ_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [
+                        { role: "system", content: GIDEON_PROMPT },
+                        { role: "user", content: text }
+                    ],
+                    max_tokens: 300,
+                    temperature: 0.7
+                })
+            });
+            
+            const data = await res.json();
+            const reply = data.choices?.[0]?.message?.content || "I didn't get a response. Please try again.";
+            speak(reply);
+        } catch (e) {
+            speak("I'm having trouble connecting to my core servers. Please check your internet.");
+        }
+    }
+</script>
+</body>
+</html>
 
